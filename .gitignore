@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment variables (CRITICAL)
+.env
+.env.local
+.env.production
+.env.development
+
+# Vite
+*.log
+package-lock.json
+
+# DS Store
+.DS_Store
