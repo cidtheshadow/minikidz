@@ -1,83 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { products } from '../data/products';
 import ProductCard from '../components/ProductCard';
+import { products } from '../data/products';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SlidersHorizontal, ChevronDown, ShoppingBag } from 'lucide-react';
+import { Filter, SlidersHorizontal, ChevronRight, ShoppingBag, Loader2 } from 'lucide-react';
 
 const Category = () => {
   const { id } = useParams();
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [filter, setFilter] = useState('all');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  // Clean up ID for display
-  const categoryTitle = id ? id.replace('-', ' & ').toUpperCase() : 'COLLECTION';
+  const categoryProducts = products.filter(p => p.category.toLowerCase() === id.toLowerCase() || id === 'all');
+  const filteredProducts = filter === 'all' 
+    ? categoryProducts 
+    : categoryProducts.filter(p => (p.subcategory || '').toLowerCase() === filter.toLowerCase());
 
-  const filteredProducts = products.filter(p => {
-    // Basic Category Filter (by URL)
-    const categoryMatch = id === 'all' || p.category.toLowerCase().includes(id.toLowerCase()) || p.subCategory.toLowerCase().includes(id.toLowerCase());
-    
-    // Sub-Filter (by UI buttons)
-    if (activeFilter === 'All') return categoryMatch;
-    return categoryMatch && (p.category === activeFilter || p.subCategory === activeFilter);
-  });
+  const subcategories = [...new Set(categoryProducts.map(p => p.subcategory).filter(Boolean))];
 
   return (
-    <main className="max-w-7xl mx-auto px-12 py-40 space-y-32 min-h-screen pt-40">
-      <div className="flex flex-col lg:flex-row items-baseline justify-between gap-12 border-b border-brand-tan/10 pb-20">
-         <div className="space-y-6">
-           <nav className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-charcoal/20 flex gap-4">
-              <Link to="/" className="hover:text-brand-gold transition-colors">Home</Link>
-              <span>/</span>
-              <span className="text-brand-gold">Narration</span>
-           </nav>
-           <h1 className="text-8xl lg:text-[140px] font-serif text-brand-charcoal leading-[0.85] tracking-tight">
-             {categoryTitle} <br />
-             <i className="text-brand-forest italic text-5xl mt-8 block lg:inline">— Heritage Curation</i>
-           </h1>
-         </div>
-         
-         <div className="flex flex-wrap gap-x-12 gap-y-6 text-[11px] font-bold uppercase tracking-[0.4em] text-brand-charcoal/40">
-            {['All', 'Traditionals', 'Boys', 'Newborn'].map(filter => (
-               <button 
-                key={filter}
-                onClick={() => setActiveFilter(filter)} 
-                className={`hover:text-brand-gold transition-all relative group py-2 ${activeFilter === filter ? 'text-brand-gold' : ''}`}
-               >
-                 {filter === 'All' ? 'Whole Narration' : filter}
-                 <span className={`absolute bottom-0 left-0 h-px bg-brand-gold transition-all duration-500 ${activeFilter === filter ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
-               </button>
-            ))}
-         </div>
-      </div>
+    <div className="min-h-screen bg-brand-cream pt-40 lg:pt-56 pb-40 px-6 lg:px-12">
+      {/* Category Header & Breadcrumbs */}
+      <div className="max-w-7xl mx-auto space-y-12 lg:space-y-16">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 lg:space-y-8">
+           <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-[9px] lg:text-[11px] font-bold uppercase tracking-[0.34em] text-brand-charcoal/40">
+             <Link to="/" className="hover:text-brand-gold transition-colors">Heritage Home</Link>
+             <ChevronRight size={14} strokeWidth={1} className="opacity-40" />
+             <span className="text-brand-gold italic">{id} curated collection</span>
+           </div>
+           
+           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 lg:gap-0">
+             <div className="space-y-4 lg:space-y-6">
+                <h1 className="text-5xl lg:text-9xl font-serif text-brand-charcoal tracking-tighter capitalize leading-none">{id} <i className="text-brand-gold italic block lg:inline text-4xl lg:text-[100px] mt-2 lg:mt-0">Stories.</i></h1>
+                <p className="text-lg lg:text-2xl text-brand-charcoal/40 font-serif italic max-w-lg leading-relaxed">"Discover the artisanal charm of our hand-picked selection for little souls."</p>
+             </div>
+             
+             {/* Filter Stats */}
+             <div className="flex items-center gap-6 lg:gap-8 pb-4 border-b border-brand-tan/20">
+                <div className="text-right">
+                   <span className="text-[10px] font-bold uppercase tracking-widest text-brand-charcoal/30 block">Current Narrations</span>
+                   <span className="text-3xl lg:text-4xl font-serif italic text-brand-charcoal">{filteredProducts.length}</span>
+                </div>
+                <ShoppingBag size={32} strokeWidth={0.5} className="text-brand-gold opacity-30" />
+             </div>
+           </div>
+        </motion.div>
 
-      {filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-24">
-          <AnimatePresence mode="popLayout">
-            {filteredProducts.map((product, i) => (
-              <motion.div
-                layout
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: i * 0.05 }}
+        {/* Dynamic Filters Bar */}
+        <div className="sticky top-24 lg:top-36 z-40 py-6 lg:py-8 bg-brand-cream/80 backdrop-blur-md border-y border-brand-tan/10 overflow-x-auto">
+          <div className="flex items-center gap-8 lg:gap-12 min-w-max">
+            <button 
+              onClick={() => setFilter('all')}
+              className={`text-[10px] lg:text-xs font-bold uppercase tracking-[0.24em] transition-all relative group ${filter === 'all' ? 'text-brand-charcoal' : 'text-brand-charcoal/40 hover:text-brand-charcoal'}`}
+            >
+              The Full Story
+              <span className={`absolute -bottom-2 left-0 w-0 h-px bg-brand-gold transition-all duration-500 group-hover:w-full ${filter === 'all' ? 'w-full' : ''}`}></span>
+            </button>
+            
+            {subcategories.map(sub => (
+              <button 
+                key={sub}
+                onClick={() => setFilter(sub)}
+                className={`text-[10px] lg:text-xs font-bold uppercase tracking-[0.24em] transition-all relative group ${filter === sub ? 'text-brand-charcoal' : 'text-brand-charcoal/40 hover:text-brand-charcoal'}`}
               >
-                <ProductCard product={product} />
+                {sub}
+                <span className={`absolute -bottom-2 left-0 w-0 h-px bg-brand-gold transition-all duration-500 group-hover:w-full ${filter === sub ? 'w-full' : ''}`}></span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16 lg:gap-x-12 lg:gap-y-24 mt-20">
+          <AnimatePresence mode="popLayout">
+            {filteredProducts.map((p, index) => (
+              <motion.div 
+                key={p.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.8, delay: index * 0.1, ease: 'circOut' }}
+              >
+                <ProductCard product={p} />
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
-      ) : (
-         <div className="flex flex-col items-center justify-center py-60 space-y-12 border border-brand-tan/10 bg-brand-tan/5">
-            <ShoppingBag size={64} strokeWidth={0.5} className="text-brand-charcoal/10" />
-            <div className="text-center space-y-4">
-              <h3 className="text-4xl font-serif italic text-brand-charcoal/40 tracking-tight">"A story yet to be written for {categoryTitle}."</h3>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-30">The Artisans are still crafting this narrative</p>
-            </div>
-            <button onClick={() => setActiveFilter('All')} className="btn-premium">Return To Archive</button>
-         </div>
-      )}
-    </main>
+        
+        {filteredProducts.length === 0 && (
+          <div className="py-40 text-center space-y-8">
+             <Loader2 className="animate-spin text-brand-gold mx-auto" size={48} strokeWidth={1} />
+             <p className="text-2xl font-serif italic text-brand-charcoal/40">Searching for new artisanal narrations...</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
